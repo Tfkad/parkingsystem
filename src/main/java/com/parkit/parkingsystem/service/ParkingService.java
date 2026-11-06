@@ -103,7 +103,11 @@ public class ParkingService {
             Ticket ticket = ticketDAO.getTicket(vehicleRegNumber);
             Date outTime = new Date();
             ticket.setOutTime(outTime);
-            fareCalculatorService.calculateFare(ticket);
+            
+            //new
+            boolean discountApplied = ticketDAO.hasExistingTickets(ticket.getVehicleRegNumber(), ticket.getId()); // au bon endroit ?
+            fareCalculatorService.calculateFare(ticket, discountApplied);
+            
             if(ticketDAO.updateTicket(ticket)) {
                 ParkingSpot parkingSpot = ticket.getParkingSpot();
                 parkingSpot.setAvailable(true);
