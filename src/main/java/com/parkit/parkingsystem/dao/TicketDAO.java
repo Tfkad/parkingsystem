@@ -19,9 +19,8 @@ public class TicketDAO {
 
     public DataBaseConfig dataBaseConfig = new DataBaseConfig();
 
-    public boolean saveTicket(Ticket ticket){
+    public boolean saveTicket(Ticket ticket) {
         Connection con = null;
-        //PreparedStatement ps = null; // tk
         try {
             con = dataBaseConfig.getConnection();
             PreparedStatement ps = con.prepareStatement(DBConstants.SAVE_TICKET);
@@ -32,16 +31,12 @@ public class TicketDAO {
             ps.setDouble(3, ticket.getPrice());
             ps.setTimestamp(4, new Timestamp(ticket.getInTime().getTime()));
             ps.setTimestamp(5, (ticket.getOutTime() == null)?null: (new Timestamp(ticket.getOutTime().getTime())) );
-            //return ps.execute();
-            return ps.executeUpdate() == 1; // tk
+            return ps.execute();
         } catch (Exception ex) {
             logger.error("Error fetching next available slot",ex); // Erreur lors de la récupération du prochain emplacement disponible
-            return false; // tk
         } finally {
-            // dataBaseConfig.closeConnection(con);
-            // return false; renvoie donc toujours false, même si l'insertion réussit
-            // dataBaseConfig.closePreparedStatement(ps);
             dataBaseConfig.closeConnection(con);
+            return false;
         }
     }
 
@@ -73,28 +68,6 @@ public class TicketDAO {
             return ticket;
         }
     }
-       
-    // tk
-    public boolean hasExistingTickets(String vehicleRegNumber, int ticketId) {
-        Connection con = null;
-        try {
-            con = dataBaseConfig.getConnection();
-            PreparedStatement ps =
-                con.prepareStatement(DBConstants.EXIST_TICKET);
-            ps.setString(1, vehicleRegNumber);
-            ps.setInt(2, ticketId);
-            ResultSet rs = ps.executeQuery();
-            
-            // return rs.next(); renvoie true même lorsqu'il n'y a aucun historique (zéro ticket)
-            return rs.next() && rs.getInt(1) > 0; // renvoie true uniquement si un ancien ticket terminé existe
-            
-        } catch (Exception ex) {
-            logger.error("Error checking vehicle history", ex);
-            return false;
-        } finally {
-            dataBaseConfig.closeConnection(con);
-        }
-    }
     
     public boolean updateTicket(Ticket ticket) {
         Connection con = null;
@@ -103,13 +76,9 @@ public class TicketDAO {
             PreparedStatement ps = con.prepareStatement(DBConstants.UPDATE_TICKET);
             ps.setDouble(1, ticket.getPrice());
             ps.setTimestamp(2, new Timestamp(ticket.getOutTime().getTime()));
-            ps.setInt(3,ticket.getId());
-            
+            ps.setInt(3,ticket.getId());            
             ps.execute();
             return true; // peut renvoyer true sans vérifier qu’un ticket a effectivement été mis à jour
-            // int rowsUpdated = ps.executeUpdate();
-            // return rowsUpdated == 1;
-            
         } catch (Exception ex) {
             logger.error("Error saving ticket info",ex);
         } finally {
@@ -117,4 +86,44 @@ public class TicketDAO {
         }
         return false;
     }
+
+    public int getNbTicket(String vehicleRegNumber) {
+	    Connection con = null;
+	    int count = 0;
+	    try {
+	        con = dataBaseConfig.getConnection();
+	        PreparedStatement ps = con.prepareStatement(DBConstants.GET_TICKET_COUNT);
+	        ps.setString(1, vehicleRegNumber);
+	        ResultSet rs = ps.executeQuery();
+	        if (rs.next()) {
+	            count = rs.getInt(1);
+	        }
+	        dataBaseConfig.closeResultSet(rs);
+	        dataBaseConfig.closePreparedStatement(ps);
+	    } catch (Exception ex) {
+	        logger.error("Error fetching ticket count", ex);
+	    } finally {
+	        dataBaseConfig.closeConnection(con);
+	    }
+	    return count;
+    }
+    
+    /*public boolean hasExistingTickets(String vehicleRegNumber, int ticketId) {
+        Connection con = null;
+        try {
+            con = dataBaseConfig.getConnection();
+            PreparedStatement ps =
+                con.prepareStatement(DBConstants.EXIST_TICKET);
+            ps.setString(1, vehicleRegNumber);
+            ps.setInt(2, ticketId);
+            ResultSet rs = ps.executeQuery();            
+            return rs.next() && rs.getInt(1) > 0; // renvoie true uniquement si un ancien ticket terminé existe
+        } catch (Exception ex) {
+            logger.error("Error checking vehicle history", ex);
+        } finally {
+            dataBaseConfig.closeConnection(con);
+        }
+        return false;
+    }*/
+    
 }
